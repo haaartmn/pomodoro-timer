@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>ポモドーロタイマー</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root {
             --primary-color: #1a1a1a;
@@ -251,7 +254,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         .stat-item {
@@ -303,6 +306,150 @@
 
         .task-item button:hover {
             background: #45a049;
+        }
+
+        .reset-button {
+            width: 100%;
+            margin-top: 20px;
+            background-color: #666;
+        }
+
+        .reset-button:hover {
+            background-color: #777;
+        }
+
+        /* レスポンシブ対応の追加 */
+        @media (max-width: 768px) {
+            /* コンテナの調整 */
+            .container {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            /* タイマーセクションの調整 */
+            .timer-section {
+                padding: 20px;
+            }
+
+            #timer {
+                font-size: 80px; /* タイマーの文字サイズを調整 */
+                margin: 20px 0;
+            }
+
+            /* コントロールボタンの調整 */
+            .controls {
+                flex-wrap: wrap; /* ボタンを折り返し可能に */
+                gap: 10px;
+            }
+
+            .controls button {
+                flex: 1 1 calc(50% - 10px); /* 2列に配置 */
+                min-width: 120px;
+                padding: 15px 0; /* タップしやすい大きさに */
+                font-size: 18px;
+            }
+
+            /* タスク入力エリアの調整 */
+            .task-input-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .priority-select {
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+            }
+
+            input[type="text"] {
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+            }
+
+            .task-input-container button {
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+            }
+
+            /* タスクリストの調整 */
+            .task-item {
+                padding: 15px;
+                margin: 8px 0;
+            }
+
+            .task-item button {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            /* 優先度バッジの調整 */
+            .priority-badge {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+
+            /* 統計セクションの調整 */
+            .stats-grid {
+                gap: 15px;
+            }
+
+            .stat-item {
+                padding: 15px;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+
+            .stat-label {
+                font-size: 14px;
+            }
+
+            /* リセットボタンの調整 */
+            .reset-button {
+                padding: 15px;
+                font-size: 16px;
+                margin-top: 15px;
+            }
+
+            /* 全体的なテキストサイズの調整 */
+            h1 {
+                font-size: 24px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            h3 {
+                font-size: 18px;
+            }
+        }
+
+        /* タップ領域の改善 */
+        @media (hover: none) {
+            /* タップ可能な要素のサイズを大きく */
+            button, 
+            .priority-select,
+            input[type="text"] {
+                min-height: 44px; /* Appleの推奨サイズ */
+            }
+
+            /* タップ時のフィードバック */
+            button:active {
+                opacity: 0.7;
+            }
+        }
+
+        /* iPhoneのセーフエリア対応 */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(20px, env(safe-area-inset-left));
+                padding-right: max(20px, env(safe-area-inset-right));
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+            }
         }
     </style>
     <!-- 基本のfavicon -->
@@ -384,7 +531,7 @@
                     <div class="setting-item">
                         <label>
                             <input type="checkbox" id="desktopNotifications" checked>
-                            デスクトップ通知
+                            デスクトップ通
                         </label>
                     </div>
                 </div>
@@ -392,7 +539,7 @@
             </div>
         </div>
 
-        <!-- 統計セクションを追加 -->
+        <!-- 統計セクションを修正 -->
         <div class="stats-section">
             <h2>統計</h2>
             <div class="stats-grid">
@@ -401,18 +548,11 @@
                     <div class="stat-label">今日のポモドーロ</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="weeklyPomodoros">0</div>
-                    <div class="stat-label">今週のポモドーロ</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="totalWorkTime">0</div>
-                    <div class="stat-label">総作業時間 (分)</div>
-                </div>
-                <div class="stat-item">
                     <div class="stat-value" id="completionRate">0%</div>
                     <div class="stat-label">タスク完了率</div>
                 </div>
             </div>
+            <button onclick="resetDay()" class="reset-button">日付切り替え</button>
         </div>
     </div>
     <script>
@@ -421,6 +561,53 @@
         let isRunning = false;
         let currentPhaseType = 'work';
         let completedPomodoros = 0;
+
+        // データの構造を定義
+        let appData = {
+            lastResetDate: new Date().toDateString(),
+            todayPomodoros: 0,
+            tasks: [],
+            completedTasks: []
+        };
+
+        // LocalStorageからデータを読み込む
+        function loadData() {
+            const savedData = localStorage.getItem('pomodoroData');
+            if (savedData) {
+                appData = JSON.parse(savedData);
+                
+                // 日付が変わっていた場合は自動リセット
+                if (appData.lastResetDate !== new Date().toDateString()) {
+                    resetDay();
+                } else {
+                    // データを画面に反映
+                    tasks = appData.tasks || [];
+                    completedTasks = appData.completedTasks || [];
+                    updateTaskList();
+                    updateStatistics();
+                }
+            }
+        }
+
+        // データを保存
+        function saveData() {
+            appData.tasks = tasks;
+            appData.completedTasks = completedTasks;
+            localStorage.setItem('pomodoroData', JSON.stringify(appData));
+        }
+
+        // 統計の更新
+        function updateStatistics() {
+            document.getElementById('todayPomodoros').textContent = appData.todayPomodoros;
+            
+            const totalTasks = tasks.length + completedTasks.length;
+            const completionRate = totalTasks > 0 
+                ? Math.round((completedTasks.length / totalTasks) * 100) 
+                : 0;
+            document.getElementById('completionRate').textContent = `${completionRate}%`;
+            
+            saveData();
+        }
 
         // タイマー関連の関数
         function startTimer() {
@@ -461,6 +648,7 @@
         function handlePhaseComplete() {
             pauseTimer();
             if (currentPhaseType === 'work') {
+                appData.todayPomodoros++;
                 completedPomodoros++;
                 document.getElementById('completedPomodoros').textContent = completedPomodoros;
                 if (completedPomodoros % 4 === 0) {
@@ -481,33 +669,40 @@
                 currentPhaseType === 'work' ? '作業時間' : 
                 currentPhaseType === 'shortBreak' ? '短い休憩' : '長い休憩';
             updateTimerDisplay();
+            updateStatistics();
         }
 
         // タスク管理の関数
         function addTask() {
-            const input = document.getElementById('newTask');
-            const priority = document.getElementById('taskPriority').value;
-            const taskText = input.value.trim();
-
+            const taskInput = document.getElementById('newTask');
+            const prioritySelect = document.getElementById('taskPriority');
+            const taskText = taskInput.value.trim();
+            const priority = parseInt(prioritySelect.value);
+            
             if (taskText) {
-                const li = document.createElement('li');
-                li.className = 'task-item';
-                li.innerHTML = `
-                    <span class="priority-badge priority-${priority}">優先度${priority}</span>
-                    <span class="task-text">${taskText}</span>
-                    <button onclick="completeTask(this)">完了</button>
-                `;
-                document.getElementById('taskList').appendChild(li);
-                input.value = '';
+                const task = {
+                    id: Date.now(),
+                    text: taskText,
+                    priority: priority,
+                    completed: false
+                };
+                
+                tasks.push(task);
+                taskInput.value = '';
+                updateTaskList();
+                updateStatistics(); // 統計を更新
             }
         }
 
-        function completeTask(button) {
-            const taskItem = button.parentElement;
-            taskItem.classList.add('completed-task');
-            button.remove();
-            document.getElementById('completedTaskList').appendChild(taskItem);
-            updateStats();
+        function completeTask(taskId) {
+            const taskIndex = tasks.findIndex(task => task.id === taskId);
+            if (taskIndex !== -1) {
+                const completedTask = tasks.splice(taskIndex, 1)[0];
+                completedTask.completed = true;
+                completedTasks.push(completedTask);
+                updateTaskList();
+                updateStatistics();
+            }
         }
 
         function updateStats() {
@@ -554,6 +749,36 @@
                 completedTaskList.appendChild(li);
             });
         }
+
+        // 日付切り替え機能
+        function resetDay() {
+            if (confirm('全ての記録をリセットしますか？')) {
+                appData = {
+                    lastResetDate: new Date().toDateString(),
+                    todayPomodoros: 0,
+                    tasks: [],
+                    completedTasks: []
+                };
+                
+                tasks = [];
+                completedTasks = [];
+                
+                updateTaskList();
+                updateStatistics();
+                saveData();
+            }
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateDisplay();
+        });
+
+        // タブを閉じる前にデータを保存
+        window.addEventListener('beforeunload', function() {
+            saveData();
+        });
     </script>
 </body>
 </html>
