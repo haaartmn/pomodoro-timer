@@ -272,6 +272,38 @@
             color: #888;
             margin-top: 5px;
         }
+
+        /* タスクテキストのスタイル */
+        .task-text {
+            flex-grow: 1;
+            margin: 0 20px; /* 左右のスペースを追加 */
+        }
+
+        /* 共通のボタンスタイル */
+        button {
+            font-size: 16px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: var(--accent-color);
+            color: white;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            background: #ff6b6b;
+        }
+
+        /* 完了ボタンの特別なスタイル */
+        .task-item button {
+            background: var(--success-color);
+        }
+
+        .task-item button:hover {
+            background: #45a049;
+        }
     </style>
     <!-- 基本のfavicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -462,7 +494,7 @@
                 li.className = 'task-item';
                 li.innerHTML = `
                     <span class="priority-badge priority-${priority}">優先度${priority}</span>
-                    <span>${taskText}</span>
+                    <span class="task-text">${taskText}</span>
                     <button onclick="completeTask(this)">完了</button>
                 `;
                 document.getElementById('taskList').appendChild(li);
@@ -494,6 +526,34 @@
 
         // 初期表示を更新
         updateTimerDisplay();
+
+        function updateTaskList() {
+            const taskList = document.getElementById('taskList');
+            const completedTaskList = document.getElementById('completedTaskList');
+            
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
+                    <span class="task-text">${task.text}</span>
+                    <button onclick="completeTask(${task.id})">完了</button>
+                `;
+                taskList.appendChild(li);
+            });
+            
+            completedTaskList.innerHTML = '';
+            completedTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item completed-task';
+                li.innerHTML = `
+                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
+                    <span class="task-text">${task.text}</span>
+                `;
+                completedTaskList.appendChild(li);
+            });
+        }
     </script>
 </body>
 </html>
