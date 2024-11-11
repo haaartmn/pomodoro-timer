@@ -451,6 +451,73 @@
                 padding-bottom: max(20px, env(safe-area-inset-bottom));
             }
         }
+
+        /* 優先度編集用のセレクトボックス */
+        .priority-edit {
+            padding: 8px;
+            border-radius: 8px;
+            border: none;
+            background: #444;
+            color: white;
+            cursor: pointer;
+            margin-right: 15px;
+            font-size: 14px;
+        }
+
+        .priority-edit:hover {
+            background: #555;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .priority-edit {
+                padding: 10px;
+                font-size: 16px;
+            }
+            
+            .task-item {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .task-text {
+                width: 100%;
+                order: -1; /* タスクテキストを最上部に */
+            }
+        }
+
+        /* タスクの優先度による背景色 */
+        .task-item.priority-1 {
+            background: linear-gradient(to right, rgba(255, 68, 68, 0.2), rgba(51, 51, 51, 0.9)); /* 最優先 - 赤系 */
+            border-left: 4px solid #ff4444;
+        }
+
+        .task-item.priority-2 {
+            background: linear-gradient(to right, rgba(255, 136, 0, 0.2), rgba(51, 51, 51, 0.9)); /* 優先度高 - オレンジ系 */
+            border-left: 4px solid #ff8800;
+        }
+
+        .task-item.priority-3 {
+            background: linear-gradient(to right, rgba(255, 187, 51, 0.2), rgba(51, 51, 51, 0.9)); /* 中程度 - 黄色系 */
+            border-left: 4px solid #ffbb33;
+        }
+
+        .task-item.priority-4 {
+            background: linear-gradient(to right, rgba(0, 200, 81, 0.2), rgba(51, 51, 51, 0.9)); /* 優先度低 - 緑系 */
+            border-left: 4px solid #00C851;
+        }
+
+        .task-item.priority-5 {
+            background: linear-gradient(to right, rgba(51, 181, 229, 0.2), rgba(51, 51, 51, 0.9)); /* 最低優先 - 青系 */
+            border-left: 4px solid #33b5e5;
+        }
+
+        /* 完了済みタスクは色を抑える */
+        .task-item.completed-task {
+            background: #2a2a2a !important;
+            border-left: none;
+            opacity: 0.6;
+        }
     </style>
     <!-- 基本のfavicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -472,7 +539,7 @@
             </div>
             <div class="phase-info">
                 <p>現在のフェーズ: <span id="currentPhase">作業時間</span></p>
-                <p>完了: <span id="completedPomodoros">0</span>/4</p>
+                <p>完了: <span id="completedPomodoros">0</span> / 4</p>
             </div>
         </div>
 
@@ -637,9 +704,11 @@
             taskList.innerHTML = '';
             tasks.forEach(task => {
                 const li = document.createElement('li');
-                li.className = 'task-item';
+                li.className = `task-item priority-${task.priority}`;
                 li.innerHTML = `
-                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
+                    <select class="priority-edit" onchange="updateTaskPriority(${task.id}, this.value)">
+                        ${generatePriorityOptions(task.priority)}
+                    </select>
                     <span class="task-text">${task.text}</span>
                     <button onclick="completeTask(${task.id})">完了</button>
                 `;
@@ -656,6 +725,27 @@
                 `;
                 completedTaskList.appendChild(li);
             });
+        }
+
+        // 優先度オプションを生成する関数
+        function generatePriorityOptions(selectedPriority) {
+            let options = '';
+            for (let i = 1; i <= 5; i++) {
+                options += `<option value="${i}" ${i === selectedPriority ? 'selected' : ''}>優先度${i}</option>`;
+            }
+            return options;
+        }
+
+        // タスクの優先度を更新する関数
+        function updateTaskPriority(taskId, newPriority) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.priority = parseInt(newPriority);
+                // タスクを優先順にソート
+                tasks.sort((a, b) => a.priority - b.priority);
+                updateTaskList();
+                saveData();
+            }
         }
 
         // 日付切り替え機能
@@ -756,25 +846,36 @@
                 appData.todayPomodoros++;
                 completedPomodoros++;
                 document.getElementById('completedPomodoros').textContent = completedPomodoros;
-                if (completedPomodoros % 4 === 0) {
-                    // 長い休憩
-                    timeLeft = 15 * 60;
+                
+                if (completedPomodoros >= 4) {
+                    // 4ポモドーロ達成したらリセット
+                    completedPomodoros = 0;
+                    document.getElementById('completedPomodoros').textContent = '0';
+                    timeLeft = 15 * 60; // 長い休憩
                     currentPhaseType = 'longBreak';
                 } else {
-                    // 短い休憩
+                    // 通常の休憩
                     timeLeft = 5 * 60;
                     currentPhaseType = 'shortBreak';
                 }
             } else {
-                // 作業時間に戻る
+                // 休憩終了後は作業時間に戻る
                 timeLeft = 25 * 60;
                 currentPhaseType = 'work';
             }
+            
             document.getElementById('currentPhase').textContent = 
                 currentPhaseType === 'work' ? '作業時間' : 
                 currentPhaseType === 'shortBreak' ? '短い休憩' : '長い休憩';
+            
             updateTimerDisplay();
             updateStatistics();
+            
+            // 通知を送信
+            const message = currentPhaseType === 'work' ? 
+                '作業時間が始まります' : 
+                '休憩時間です';
+            sendNotification('フェーズ変更', message);
         }
 
         // ページ読み込み時の初期化
