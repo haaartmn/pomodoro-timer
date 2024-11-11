@@ -486,7 +486,7 @@
                     <option value="4">優先度4</option>
                     <option value="5">優先度5</option>
                 </select>
-                <input type="text" id="newTask" placeholder="新しいタスクを入力してEnter">
+                <input type="text" id="newTask" placeholder="新しいタスクを入力">
                 <button onclick="addTask()">追加</button>
             </div>
             <div class="task-lists">
@@ -570,30 +570,135 @@
             completedTasks: []
         };
 
-        // LocalStorageからデータを読み込む
+        // グローバル変数の定義
+        let tasks = [];
+        let completedTasks = [];
+
+        // タスクの追加処理
+        function addTask() {
+            const taskInput = document.getElementById('newTask');
+            const prioritySelect = document.getElementById('taskPriority');
+            const taskText = taskInput.value.trim();
+            const priority = parseInt(prioritySelect.value);
+            
+            if (taskText) {
+                const task = {
+                    id: Date.now(),
+                    text: taskText,
+                    priority: priority,
+                    completed: false
+                };
+                
+                tasks.push(task);
+                taskInput.value = ''; // 入力フィールドをクリア
+                
+                // タスクを優先度順にソート
+                tasks.sort((a, b) => a.priority - b.priority);
+                
+                updateTaskList();
+                updateStatistics();
+                saveData();
+            }
+        }
+
+        function completeTask(taskId) {
+            const taskIndex = tasks.findIndex(task => task.id === taskId);
+            if (taskIndex !== -1) {
+                const completedTask = tasks.splice(taskIndex, 1)[0];
+                completedTask.completed = true;
+                completedTasks.push(completedTask);
+                updateTaskList();
+                updateStatistics();
+            }
+        }
+
+        function updateStats() {
+            const totalTasks = document.querySelectorAll('.task-item').length;
+            const completedTasks = document.querySelectorAll('.completed-task').length;
+            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            document.getElementById('completionRate').textContent = `${completionRate}%`;
+        }
+
+        // Enter キーでタスクを追加
+        document.getElementById('newTask').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+
+        // 初期表示を更新
+        updateTimerDisplay();
+
+        // タスクリストの更新
+        function updateTaskList() {
+            const taskList = document.getElementById('taskList');
+            const completedTaskList = document.getElementById('completedTaskList');
+            
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
+                    <span class="task-text">${task.text}</span>
+                    <button onclick="completeTask(${task.id})">完了</button>
+                `;
+                taskList.appendChild(li);
+            });
+            
+            completedTaskList.innerHTML = '';
+            completedTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item completed-task';
+                li.innerHTML = `
+                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
+                    <span class="task-text">${task.text}</span>
+                `;
+                completedTaskList.appendChild(li);
+            });
+        }
+
+        // 日付切り替え機能
+        function resetDay() {
+            if (confirm('全ての記録をリセットしますか？')) {
+                appData = {
+                    lastResetDate: new Date().toDateString(),
+                    todayPomodoros: 0,
+                    tasks: [],
+                    completedTasks: []
+                };
+                
+                tasks = [];
+                completedTasks = [];
+                
+                updateTaskList();
+                updateStatistics();
+                saveData();
+            }
+        }
+
+        // データの保存
+        function saveData() {
+            appData.tasks = tasks;
+            appData.completedTasks = completedTasks;
+            localStorage.setItem('pomodoroData', JSON.stringify(appData));
+        }
+
+        // データの読み込み
         function loadData() {
             const savedData = localStorage.getItem('pomodoroData');
             if (savedData) {
                 appData = JSON.parse(savedData);
                 
-                // 日付が変わっていた場合は自動リセット
                 if (appData.lastResetDate !== new Date().toDateString()) {
                     resetDay();
                 } else {
-                    // データを画面に反映
                     tasks = appData.tasks || [];
                     completedTasks = appData.completedTasks || [];
                     updateTaskList();
                     updateStatistics();
                 }
             }
-        }
-
-        // データを保存
-        function saveData() {
-            appData.tasks = tasks;
-            appData.completedTasks = completedTasks;
-            localStorage.setItem('pomodoroData', JSON.stringify(appData));
         }
 
         // 統計の更新
@@ -670,103 +775,6 @@
                 currentPhaseType === 'shortBreak' ? '短い休憩' : '長い休憩';
             updateTimerDisplay();
             updateStatistics();
-        }
-
-        // タスク管理の関数
-        function addTask() {
-            const taskInput = document.getElementById('newTask');
-            const prioritySelect = document.getElementById('taskPriority');
-            const taskText = taskInput.value.trim();
-            const priority = parseInt(prioritySelect.value);
-            
-            if (taskText) {
-                const task = {
-                    id: Date.now(),
-                    text: taskText,
-                    priority: priority,
-                    completed: false
-                };
-                
-                tasks.push(task);
-                taskInput.value = '';
-                updateTaskList();
-                updateStatistics(); // 統計を更新
-            }
-        }
-
-        function completeTask(taskId) {
-            const taskIndex = tasks.findIndex(task => task.id === taskId);
-            if (taskIndex !== -1) {
-                const completedTask = tasks.splice(taskIndex, 1)[0];
-                completedTask.completed = true;
-                completedTasks.push(completedTask);
-                updateTaskList();
-                updateStatistics();
-            }
-        }
-
-        function updateStats() {
-            const totalTasks = document.querySelectorAll('.task-item').length;
-            const completedTasks = document.querySelectorAll('.completed-task').length;
-            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-            document.getElementById('completionRate').textContent = `${completionRate}%`;
-        }
-
-        // Enter キーでタスクを追加
-        document.getElementById('newTask').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addTask();
-            }
-        });
-
-        // 初期表示を更新
-        updateTimerDisplay();
-
-        function updateTaskList() {
-            const taskList = document.getElementById('taskList');
-            const completedTaskList = document.getElementById('completedTaskList');
-            
-            taskList.innerHTML = '';
-            tasks.forEach(task => {
-                const li = document.createElement('li');
-                li.className = 'task-item';
-                li.innerHTML = `
-                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
-                    <span class="task-text">${task.text}</span>
-                    <button onclick="completeTask(${task.id})">完了</button>
-                `;
-                taskList.appendChild(li);
-            });
-            
-            completedTaskList.innerHTML = '';
-            completedTasks.forEach(task => {
-                const li = document.createElement('li');
-                li.className = 'task-item completed-task';
-                li.innerHTML = `
-                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
-                    <span class="task-text">${task.text}</span>
-                `;
-                completedTaskList.appendChild(li);
-            });
-        }
-
-        // 日付切り替え機能
-        function resetDay() {
-            if (confirm('全ての記録をリセットしますか？')) {
-                appData = {
-                    lastResetDate: new Date().toDateString(),
-                    todayPomodoros: 0,
-                    tasks: [],
-                    completedTasks: []
-                };
-                
-                tasks = [];
-                completedTasks = [];
-                
-                updateTaskList();
-                updateStatistics();
-                saveData();
-            }
         }
 
         // ページ読み込み時の初期化
