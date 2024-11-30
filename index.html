@@ -524,6 +524,70 @@
             border-left: none;
             opacity: 0.6;
         }
+
+        .task-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .delete-btn {
+            background-color: #dc3545 !important;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333 !important;
+            transform: translateY(-2px);
+        }
+
+        .edit-task-input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background: #444;
+            color: white;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+
+        .edit-task-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+        }
+
+        .task-text {
+            cursor: pointer;
+        }
+
+        .task-text:hover {
+            text-decoration: underline;
+        }
+
+        /* 完了ボタンのスタイルも具体的に指定 */
+        .task-item .complete-btn {
+            background-color: var(--success-color);
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .task-item .complete-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        /* ボタングループのレイアウト */
+        .task-buttons {
+            display: flex;
+            gap: 8px;
+        }
     </style>
     <!-- 基本のfavicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -533,6 +597,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 </head>
 <body>
+    <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
     <div class="container">
         <div class="timer-section">
             <h1>ポモドーロタイマー</h1>
@@ -594,7 +659,7 @@
                     </div>
                 </div>
                 <div class="settings-group">
-                    <h3>通知設定</h3>
+                    <h3>通知定</h3>
                     <div class="setting-item">
                         <label>
                             <input type="checkbox" id="soundEnabled" checked>
@@ -646,6 +711,27 @@
         // グローバル変数の定義
         let tasks = [];
         let completedTasks = [];
+
+        // アラーム設定のデフォルト値を追加
+        let settings = {
+            soundEnabled: true,
+            volume: 0.5
+        };
+
+        // Web Workers用のコードを追加
+        const timerWorker = new Worker(URL.createObjectURL(new Blob([`
+            let timer;
+            
+            self.onmessage = function(e) {
+                if (e.data.command === 'start') {
+                    timer = setInterval(() => {
+                        self.postMessage('tick');
+                    }, 1000);
+                } else if (e.data.command === 'stop') {
+                    clearInterval(timer);
+                }
+            };
+        `], { type: 'text/javascript' })));
 
         // タスクの追加処理
         function addTask() {
@@ -715,8 +801,11 @@
                     <select class="priority-edit" onchange="updateTaskPriority(${task.id}, this.value)">
                         ${generatePriorityOptions(task.priority)}
                     </select>
-                    <span class="task-text">${task.text}</span>
-                    <button onclick="completeTask(${task.id})">完了</button>
+                    <span class="task-text" ondblclick="editTask(${task.id})">${task.text}</span>
+                    <div class="task-buttons">
+                        <button onclick="completeTask(${task.id})" class="complete-btn">完了</button>
+                        <button onclick="deleteTask(${task.id})" class="delete-btn">削除</button>
+                    </div>
                 `;
                 taskList.appendChild(li);
             });
@@ -728,6 +817,7 @@
                 li.innerHTML = `
                     <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
                     <span class="task-text">${task.text}</span>
+                    <button onclick="deleteCompletedTask(${task.id})" class="delete-btn">削除</button>
                 `;
                 completedTaskList.appendChild(li);
             });
@@ -810,22 +900,16 @@
             saveData();
         }
 
-        // タイマー関連の関数
+        // タイマー関連の関数を更新
         function startTimer() {
             if (!isRunning) {
                 isRunning = true;
-                timer = setInterval(() => {
-                    timeLeft--;
-                    updateTimerDisplay();
-                    if (timeLeft <= 0) {
-                        handlePhaseComplete();
-                    }
-                }, 1000);
+                timerWorker.postMessage({ command: 'start' });
             }
         }
 
         function pauseTimer() {
-            clearInterval(timer);
+            timerWorker.postMessage({ command: 'stop' });
             isRunning = false;
         }
 
@@ -848,24 +932,28 @@
 
         function handlePhaseComplete() {
             pauseTimer();
+            
+            if (settings.soundEnabled) {
+                const alarm = document.getElementById('alarmSound');
+                alarm.volume = settings.volume;
+                alarm.play().catch(error => console.log('アラーム再生エラー:', error));
+            }
+
             if (currentPhaseType === 'work') {
                 appData.todayPomodoros++;
                 completedPomodoros++;
                 document.getElementById('completedPomodoros').textContent = completedPomodoros;
                 
                 if (completedPomodoros >= 4) {
-                    // 4ポモドーロ達成したらリセット
                     completedPomodoros = 0;
                     document.getElementById('completedPomodoros').textContent = '0';
-                    timeLeft = 15 * 60; // 長い休憩
+                    timeLeft = 15 * 60;
                     currentPhaseType = 'longBreak';
                 } else {
-                    // 通常の休憩
                     timeLeft = 5 * 60;
                     currentPhaseType = 'shortBreak';
                 }
             } else {
-                // 休憩終了後は作業時間に戻る
                 timeLeft = 25 * 60;
                 currentPhaseType = 'work';
             }
@@ -877,23 +965,140 @@
             updateTimerDisplay();
             updateStatistics();
             
-            // 通知を送信
             const message = currentPhaseType === 'work' ? 
                 '作業時間が始まります' : 
                 '休憩時間です';
             sendNotification('フェーズ変更', message);
         }
 
-        // ページ読み込み時の初期化
+        // Web Workerからのメッセージを処理
+        timerWorker.onmessage = function(e) {
+            if (e.data === 'tick') {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    handlePhaseComplete();
+                }
+            }
+        };
+
+        // ページ読み込み時の初期化を更新
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             updateDisplay();
+            
+            // ページを閉じる前にWorkerを停止
+            window.addEventListener('beforeunload', function() {
+                timerWorker.postMessage({ command: 'stop' });
+                saveData();
+            });
         });
 
-        // タブを閉じる前にデータを保存
-        window.addEventListener('beforeunload', function() {
-            saveData();
-        });
+        // タスク編集機能
+        function editTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const taskElement = document.querySelector(`[ondblclick="editTask(${taskId})"]`);
+            const currentText = task.text;
+            
+            // 入力フィールドを作成
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentText;
+            input.className = 'edit-task-input';
+            
+            // 現在のテキストを入力フィールドに置き換え
+            taskElement.replaceWith(input);
+            input.focus();
+            
+            // 編集完了時の処理
+            function handleEdit() {
+                const newText = input.value.trim();
+                if (newText && newText !== currentText) {
+                    task.text = newText;
+                    saveData();
+                }
+                updateTaskList();
+            }
+            
+            // イベントリスナーを追加
+            input.addEventListener('blur', handleEdit);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleEdit();
+                }
+            });
+        }
+
+        // タスク削除機能
+        function deleteTask(taskId) {
+            if (confirm('このタスクを削除してもよろしいですか？')) {
+                const taskIndex = tasks.findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                    tasks.splice(taskIndex, 1);
+                    updateTaskList();
+                    updateStatistics();
+                    saveData();
+                }
+            }
+        }
+
+        // 完了済みタスクの削除機能
+        function deleteCompletedTask(taskId) {
+            if (confirm('この完了済みタスクを削除してもよろしいですか？')) {
+                const taskIndex = completedTasks.findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                    completedTasks.splice(taskIndex, 1);
+                    updateTaskList();
+                    updateStatistics();
+                    saveData();
+                }
+            }
+        }
+
+        // CSSスタイルを追加
+        const style = document.createElement('style');
+        style.textContent = `
+            .task-buttons {
+                display: flex;
+                gap: 8px;
+            }
+
+            .delete-btn {
+                background: #dc3545;
+                padding: 8px 15px;
+            }
+
+            .delete-btn:hover {
+                background: #c82333;
+            }
+
+            .edit-task-input {
+                flex-grow: 1;
+                padding: 8px 12px;
+                border: none;
+                border-radius: 4px;
+                background: #444;
+                color: white;
+                font-size: 16px;
+                margin: 0 10px;
+            }
+
+            .edit-task-input:focus {
+                outline: none;
+                box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+            }
+
+            .task-text {
+                cursor: pointer;
+            }
+
+            .task-text:hover {
+                text-decoration: underline;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
