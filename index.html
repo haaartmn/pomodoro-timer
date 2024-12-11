@@ -968,7 +968,7 @@
             const message = currentPhaseType === 'work' ? 
                 '作業時間が始まります' : 
                 '休憩時間です';
-            sendNotification('フェーズ変更', message);
+            sendNotification('フ���ーズ変更', message);
         }
 
         // Web Workerからのメッセージを処理
@@ -1031,29 +1031,25 @@
             });
         }
 
-        // タスク削除機能
+        // タスク削除機能を修正（確認ダイアログを削除）
         function deleteTask(taskId) {
-            if (confirm('このタスクを削除してもよろしいですか？')) {
-                const taskIndex = tasks.findIndex(task => task.id === taskId);
-                if (taskIndex !== -1) {
-                    tasks.splice(taskIndex, 1);
-                    updateTaskList();
-                    updateStatistics();
-                    saveData();
-                }
+            const taskIndex = tasks.findIndex(task => task.id === taskId);
+            if (taskIndex !== -1) {
+                tasks.splice(taskIndex, 1);
+                updateTaskList();
+                updateStatistics();
+                saveData();
             }
         }
 
-        // 完了済みタスクの削除機能
+        // 完了済みタスクの削除機能を修正（確認ダイアログを削除）
         function deleteCompletedTask(taskId) {
-            if (confirm('この完了済みタスクを削除してもよろしいですか？')) {
-                const taskIndex = completedTasks.findIndex(task => task.id === taskId);
-                if (taskIndex !== -1) {
-                    completedTasks.splice(taskIndex, 1);
-                    updateTaskList();
-                    updateStatistics();
-                    saveData();
-                }
+            const taskIndex = completedTasks.findIndex(task => task.id === taskId);
+            if (taskIndex !== -1) {
+                completedTasks.splice(taskIndex, 1);
+                updateTaskList();
+                updateStatistics();
+                saveData();
             }
         }
 
