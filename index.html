@@ -13,6 +13,14 @@
             --text-color: #ffffff;
             --secondary-color: #2d2d2d;
             --success-color: #4CAF50;
+
+            --category-input-color: #33b5e5;
+            --category-research-color: #ffbb33;
+            --category-work-color: #00C851;
+
+            --priority-high-color: #ff4444; /* 赤 */
+            --priority-medium-color: #00C851; /* 緑 */
+            --priority-low-color: #33b5e5;  /* 青 */
         }
 
         body {
@@ -70,35 +78,36 @@
             background: #ff6b6b;
         }
         
-        /* === MODIFIED: 作業項目セレクターのスタイル === */
-        .pomodoro-category {
-            margin: 25px auto 0 auto; /* 上下のマージンと中央寄せ */
-            padding: 15px 25px;
-            background-color: var(--primary-color); /* 背景色を少し変える */
-            border: 1px solid #4a4a4a;
-            border-radius: 16px;
+        .category-buttons {
             display: flex;
             justify-content: center;
-            align-items: center;
             gap: 15px;
-            max-width: 420px; /* 最大幅を設定 */
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); /* 内側に影を付ける */
+            margin: 25px 0 0 0;
         }
 
-        .pomodoro-category label {
-            font-size: 18px;
-            font-weight: 500;
-            color: #ddd;
-        }
-
-        #pomodoroCategory {
-            width: 180px;
-            font-weight: bold;
-            text-align: center;
-            padding: 10px 15px;
+        .category-btn {
             font-size: 16px;
+            font-weight: 400;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid;
+            transition: all 0.2s ease;
+            background-color: transparent;
+            color: #ccc;
         }
-        /* === END MODIFIED === */
+
+        .category-btn[data-category="input"] { border-color: var(--category-input-color); }
+        .category-btn[data-category="research"] { border-color: var(--category-research-color); }
+        .category-btn[data-category="work"] { border-color: var(--category-work-color); }
+
+        .category-btn.active[data-category="input"] { background-color: var(--category-input-color); color: white; }
+        .category-btn.active[data-category="research"] { background-color: var(--category-research-color); color: white; }
+        .category-btn.active[data-category="work"] { background-color: var(--category-work-color); color: white; }
+
+        .category-btn:not(.active):hover {
+             background-color: rgba(255, 255, 255, 0.1);
+        }
 
         .task-section {
             padding: 40px;
@@ -182,12 +191,14 @@
             margin-right: 15px;
             color: white;
         }
-
-        .priority-1 { background-color: #ff4444; }
-        .priority-2 { background-color: #ff8800; }
-        .priority-3 { background-color: #ffbb33; }
-        .priority-4 { background-color: #00C851; }
-        .priority-5 { background-color: #33b5e5; }
+        
+        .priority-1 { background-color: var(--priority-high-color); }
+        .priority-2 { background-color: var(--priority-medium-color); }
+        .priority-3 { background-color: var(--priority-low-color); }
+        
+        .task-item.priority-1 { background: linear-gradient(to right, rgba(255, 68, 68, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid var(--priority-high-color); }
+        .task-item.priority-2 { background: linear-gradient(to right, rgba(0, 200, 81, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid var(--priority-medium-color); }
+        .task-item.priority-3 { background: linear-gradient(to right, rgba(51, 181, 229, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid var(--priority-low-color); }
 
         .task-item button {
             padding: 8px 15px;
@@ -256,19 +267,34 @@
             gap: 20px;
             margin-bottom: 20px;
         }
-
+        
         .stat-item {
             background: var(--secondary-color);
             padding: 20px;
             border-radius: 12px;
             text-align: center;
+            border-left: 5px solid;
+            transition: background 0.2s;
         }
+        .stat-item:hover {
+            background: #3a3a3a;
+        }
+        .stats-grid .stat-item:nth-child(1) { border-color: var(--category-input-color); }
+        .stats-grid .stat-item:nth-child(2) { border-color: var(--category-research-color); }
+        .stats-grid .stat-item:nth-child(3) { border-color: var(--category-work-color); }
+        /* === MODIFIED: Totalと完了率の線の色をアクセントカラーに変更 === */
+        .stats-grid .stat-item:nth-child(4) { border-color: var(--accent-color); }
+        .stats-grid .stat-item:nth-child(5) { border-color: var(--accent-color); }
+        /* === END MODIFIED === */
 
         .stat-value {
             font-size: 32px;
             font-weight: bold;
-            color: var(--accent-color);
+            color: var(--accent-color); /* デフォルト色 */
         }
+        #todayInput { color: var(--category-input-color); }
+        #todayResearch { color: var(--category-research-color); }
+        #todayWork { color: var(--category-work-color); }
 
         .stat-label {
             font-size: 14px;
@@ -306,13 +332,11 @@
             #timer { font-size: 80px; margin: 20px 0; }
             .controls { flex-wrap: wrap; gap: 10px; }
             .controls button { flex: 1 1 calc(50% - 10px); min-width: 120px; padding: 15px 0; font-size: 18px; }
-            /* === MODIFIED: 作業項目セレクターのレスポンシブ対応 === */
-            .pomodoro-category { flex-direction: column; gap: 10px; padding: 15px; box-shadow: none; }
-            #pomodoroCategory { width: 100%; }
-            /* === END MODIFIED === */
+            .category-buttons { flex-direction: column; gap: 10px; }
+            .category-btn { width: 100%; }
             .task-input-container { flex-direction: column; gap: 10px; }
             .priority-select { width: 100%; padding: 15px; font-size: 16px; }
-            input[type="text"] { width: 100%; padding: 15px; font-size: 16px; }
+            input[type="text"] { width: 100%; box-sizing: border-box; padding: 15px; font-size: 16px; }
             .task-input-container button { width: 100%; padding: 15px; font-size: 16px; }
             .task-item { padding: 15px; margin: 8px 0; }
             .task-item button { padding: 12px 20px; font-size: 16px; }
@@ -350,11 +374,6 @@
             .task-text { width: 100%; order: -1; }
         }
 
-        .task-item.priority-1 { background: linear-gradient(to right, rgba(255, 68, 68, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid #ff4444; }
-        .task-item.priority-2 { background: linear-gradient(to right, rgba(255, 136, 0, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid #ff8800; }
-        .task-item.priority-3 { background: linear-gradient(to right, rgba(255, 187, 51, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid #ffbb33; }
-        .task-item.priority-4 { background: linear-gradient(to right, rgba(0, 200, 81, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid #00C851; }
-        .task-item.priority-5 { background: linear-gradient(to right, rgba(51, 181, 229, 0.2), rgba(51, 51, 51, 0.9)); border-left: 4px solid #33b5e5; }
         .task-item.completed-task { background: #2a2a2a !important; border-left: none; opacity: 0.6; }
         .task-buttons { display: flex; gap: 8px; }
         .delete-btn { background-color: #dc3545 !important; padding: 8px 15px; border: none; border-radius: 8px; color: white; cursor: pointer; }
@@ -377,19 +396,16 @@
         <div class="timer-section">
             <h1>ポモドーロタイマー</h1>
             <div id="timer">25:00</div>
+            <div class="category-buttons">
+                <button class="category-btn" data-category="input" onclick="selectCategory('input')">INPUT</button>
+                <button class="category-btn" data-category="research" onclick="selectCategory('research')">RESEARCH</button>
+                <button class="category-btn" data-category="work" onclick="selectCategory('work')">WORK</button>
+            </div>
             <div class="controls">
                 <button onclick="startTimer()">開始</button>
                 <button onclick="pauseTimer()">一時停止</button>
                 <button onclick="resetTimer()">リセット</button>
                 <button onclick="skipPhase()">スキップ</button>
-            </div>
-            <div class="pomodoro-category">
-                <label for="pomodoroCategory">作業項目:</label>
-                <select id="pomodoroCategory" class="priority-select">
-                    <option value="work">work</option>
-                    <option value="input">input</option>
-                    <option value="research">research</option>
-                </select>
             </div>
             <div class="phase-info">
                 <p>現在のフェーズ: <span id="currentPhase">作業時間</span></p>
@@ -400,13 +416,13 @@
         <div class="task-section">
             <h2>タスク管理</h2>
             <div class="task-input-container">
+                <!-- === MODIFIED: 優先度表示から(色)を削除 === -->
                 <select id="taskPriority" class="priority-select">
-                    <option value="1">優先度1</option>
-                    <option value="2">優先度2</option>
-                    <option value="3">優先度3</option>
-                    <option value="4">優先度4</option>
-                    <option value="5">優先度5</option>
+                    <option value="1">高</option>
+                    <option value="2">中</option>
+                    <option value="3">低</option>
                 </select>
+                <!-- === END MODIFIED === -->
                 <input type="text" id="newTask" placeholder="新しいタスクを入力">
                 <button onclick="addTask()">追加</button>
             </div>
@@ -487,12 +503,13 @@
         </div>
     </div>
     <script>
-        // (JavaScript部分は前回の回答から変更ありません)
         let timer;
         let timeLeft = 25 * 60;
         let isRunning = false;
         let currentPhaseType = 'work';
         let completedPomodoros = 0;
+        
+        let currentCategory = 'work';
 
         let appData = {
             lastResetDate: new Date().toDateString(),
@@ -519,6 +536,14 @@
                 }
             };
         `], { type: 'text/javascript' })));
+        
+        function selectCategory(category) {
+            currentCategory = category;
+            const buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === category);
+            });
+        }
 
         function addTask() {
             const taskInput = document.getElementById('newTask');
@@ -575,16 +600,34 @@
                 const li = document.createElement('li');
                 li.className = 'task-item completed-task';
                 li.innerHTML = `
-                    <span class="priority-badge priority-${task.priority}">優先度${task.priority}</span>
+                    <span class="priority-badge priority-${task.priority}">${getPriorityText(task.priority)}</span>
                     <span class="task-text">${task.text}</span>
                     <button onclick="deleteCompletedTask(${task.id})" class="delete-btn">削除</button>`;
                 completedTaskList.appendChild(li);
             });
         }
-
+        
+        // === MODIFIED: 優先度表示から(色)を削除 ===
         function generatePriorityOptions(selectedPriority) {
-            return [1, 2, 3, 4, 5].map(i => `<option value="${i}" ${i === selectedPriority ? 'selected' : ''}>優先度${i}</option>`).join('');
+            const priorities = [
+                { value: 1, text: '高' },
+                { value: 2, text: '中' },
+                { value: 3, text: '低' }
+            ];
+            return priorities.map(p => 
+                `<option value="${p.value}" ${p.value === selectedPriority ? 'selected' : ''}>${p.text}</option>`
+            ).join('');
         }
+
+        function getPriorityText(priority) {
+            switch(priority) {
+                case 1: return '高';
+                case 2: return '中';
+                case 3: return '低';
+                default: return `優先度${priority}`;
+            }
+        }
+        // === END MODIFIED ===
 
         function updateTaskPriority(taskId, newPriority) {
             const task = tasks.find(t => t.id === taskId);
@@ -689,7 +732,7 @@
             }
 
             if (currentPhaseType === 'work') {
-                const category = document.getElementById('pomodoroCategory').value;
+                const category = currentCategory;
                 if (appData.todayPomodoros.hasOwnProperty(category)) {
                     appData.todayPomodoros[category]++;
                 }
@@ -728,6 +771,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             updateTimerDisplay();
+            selectCategory('work');
             window.addEventListener('beforeunload', () => {
                 timerWorker.postMessage({ command: 'stop' });
                 saveData();
